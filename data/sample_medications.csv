@@ -1,0 +1,5 @@
+document_type,fictional_patient_name,patient_id,date,medication,dose,frequency,notes
+medication_list,Jordan Avery,MRN A1234567,2026-06-15,Ondansetron,4 mg,as needed,Fictional discharge medication
+medication_list,Jordan Avery,MRN A1234567,2026-06-15,Vitamin D3,1000 IU,daily,Fictional home supplement
+medication_list,Jordan Avery,MRN A1234567,2026-06-15,Loratadine,10 mg,daily as needed,Fictional allergy medication
+

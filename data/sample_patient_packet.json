@@ -1,0 +1,27 @@
+{
+  "fictional": true,
+  "document_type": "patient_packet",
+  "patient": {
+    "name": "Jordan Avery",
+    "email": "jordan.avery@example.com",
+    "phone": "415-555-0198",
+    "medical_record_number": "MRN: A1234567",
+    "date_of_birth": "04/12/1988"
+  },
+  "visit": {
+    "date": "2026-06-18",
+    "reason": "Fatigue and request to review recent lab results",
+    "reported_symptoms": [
+      "mild fatigue",
+      "occasional lightheadedness",
+      "no chest pain",
+      "no shortness of breath"
+    ]
+  },
+  "questions_for_assistant": [
+    "Can you summarize what these lab values generally mean?",
+    "Are there any urgent warning signs I should know about?",
+    "What should I ask my clinician at follow-up?"
+  ]
+}
+
