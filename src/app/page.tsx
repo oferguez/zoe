@@ -37,6 +37,7 @@ function MessageText({ text }: { text: string }) {
 export default function Home() {
   const [question, setQuestion] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [fileInputKey, setFileInputKey] = useState(0);
   const [privacy, setPrivacy] = useState<PrivacyMode>("private");
   const [envelope, setEnvelope] = useState<EncryptedEnvelope | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
@@ -61,7 +62,7 @@ export default function Home() {
   const publicHistory = history.filter((item) => item.owner === "other" && item.privacy === "public");
   const resultPrivacyLabel =
     resultPrivacy === "private" ? "Private selected" : resultPrivacy === "public" ? "Public selected" : "";
-  const answerKind = analysis?.kind === "quick_answer" ? "Quick Private Answer" : "External Answer";
+  const answerKind = analysis?.kind === "quick_answer" ? "Quick Answer" : "External Answer";
   const answerTitle = [externalResult ? externalAnswerTime : privateResponseTime, answerKind, resultPrivacyLabel]
     .filter(Boolean)
     .join(" | ");
@@ -73,6 +74,7 @@ export default function Home() {
     analysis?.kind === "external_summary"
       ? analysis.summary.replace(/^Anonymized medical question for external analysis:\n\n/, "")
       : "";
+  const isWorking = isSubmitting || isSendingExternal;
 
   useEffect(() => {
     if (!analysis && !answer) return;
@@ -158,6 +160,24 @@ export default function Home() {
     }
   }
 
+  function startNewQuestion() {
+    setQuestion("");
+    setFiles([]);
+    setFileInputKey((key) => key + 1);
+    setPrivacy("private");
+    setEnvelope(null);
+    setAnalysis(null);
+    setExternalResult(null);
+    setAnswer("");
+    setResultPrivacy(null);
+    setResultQuestion("");
+    setPrivateResponseTime("");
+    setExternalAnswerTime("");
+    setError("");
+    setIsSubmitting(false);
+    setIsSendingExternal(false);
+  }
+
   return (
     <main className="shell">
       <section className="workspace" aria-label="Question workspace">
@@ -174,6 +194,9 @@ export default function Home() {
           <section className="panel result" ref={responseRef}>
             <div className="responseHeader">
               <h2>{answerTitle}</h2>
+              <button className="secondary" type="button" onClick={startNewQuestion} disabled={isWorking}>
+                New question
+              </button>
             </div>
             <MessageText text={answerText} />
             {analysis ? <div className="trace">{analysis.trace.join(" / ")}</div> : null}
@@ -184,6 +207,11 @@ export default function Home() {
           <section className="panel summaryPanel" ref={answer ? undefined : responseRef}>
             <div className="responseHeader">
               <h2>{summaryTitle}</h2>
+              {!answer ? (
+                <button className="secondary" type="button" onClick={startNewQuestion} disabled={isWorking}>
+                  New question
+                </button>
+              ) : null}
             </div>
             {externalResult ? (
               <div className="chips">
@@ -196,7 +224,7 @@ export default function Home() {
                 className="primary"
                 type="button"
                 onClick={approveExternalSend}
-                disabled={isSubmitting || isSendingExternal}
+                disabled={isWorking}
               >
                 {isSendingExternal ? "Sending..." : "Approve Further Sending"}
               </button>
@@ -249,6 +277,7 @@ export default function Home() {
 
           <label className="fileDrop">
             <input
+              key={fileInputKey}
               type="file"
               multiple
               onChange={(event) => setFiles(Array.from(event.target.files || []))}
@@ -257,7 +286,7 @@ export default function Home() {
             <small>{fileSummary}</small>
           </label>
 
-          <button className="primary" type="submit" disabled={isSubmitting || isSendingExternal}>
+          <button className="primary" type="submit" disabled={isWorking}>
             {isSubmitting ? "Analyzing..." : "Send to Private Healthcare Assistant"}
           </button>
         </form>
