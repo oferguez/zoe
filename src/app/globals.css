@@ -117,6 +117,20 @@ h3 {
   font-weight: 700;
 }
 
+.fieldHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.categoryControl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
 textarea {
   width: 100%;
   min-height: 150px;
@@ -130,9 +144,22 @@ textarea {
   outline: none;
 }
 
-textarea:focus {
+textarea:focus,
+.categoryInput:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
+}
+
+.categoryInput {
+  width: 150px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 9px;
+  color: var(--text);
+  background: #fbfdfc;
+  font-size: 0.86rem;
+  line-height: 1.2;
+  outline: none;
 }
 
 .privacyGroup {

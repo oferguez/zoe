@@ -15,6 +15,8 @@ import {
   type PrivacyMode
 } from "@/lib/clientFlow";
 
+const CATEGORY_OPTIONS = ["fatigue", "chronic pain", "weight loss"];
+
 function formatMessageTime() {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -36,6 +38,7 @@ function MessageText({ text }: { text: string }) {
 
 export default function Home() {
   const [question, setQuestion] = useState("");
+  const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
   const [files, setFiles] = useState<File[]>([]);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [privacy, setPrivacy] = useState<PrivacyMode>("private");
@@ -44,6 +47,7 @@ export default function Home() {
   const [externalResult, setExternalResult] = useState<ExternalResult | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>(mockHistory);
   const [answer, setAnswer] = useState("");
+  const [resultCategory, setResultCategory] = useState("");
   const [resultPrivacy, setResultPrivacy] = useState<PrivacyMode | null>(null);
   const [resultQuestion, setResultQuestion] = useState("");
   const [privateResponseTime, setPrivateResponseTime] = useState("");
@@ -60,14 +64,20 @@ export default function Home() {
 
   const yourHistory = history.filter((item) => item.owner === "you");
   const publicHistory = history.filter((item) => item.owner === "other" && item.privacy === "public");
+  const resultCategoryLabel = resultCategory ? `Category: ${resultCategory}` : "";
   const resultPrivacyLabel =
     resultPrivacy === "private" ? "Private selected" : resultPrivacy === "public" ? "Public selected" : "";
   const answerKind = analysis?.kind === "quick_answer" ? "Quick Answer" : "External Answer";
-  const answerTitle = [externalResult ? externalAnswerTime : privateResponseTime, answerKind, resultPrivacyLabel]
+  const answerTitle = [
+    externalResult ? externalAnswerTime : privateResponseTime,
+    answerKind,
+    resultCategoryLabel,
+    resultPrivacyLabel
+  ]
     .filter(Boolean)
     .join(" | ");
   const answerText = answer.replace(/^(Quick answer|External answer)\n\n/, "");
-  const summaryTitle = [privateResponseTime, "Publish Approval Required", resultPrivacyLabel]
+  const summaryTitle = [privateResponseTime, "Publish Approval Required", resultCategoryLabel, resultPrivacyLabel]
     .filter(Boolean)
     .join(" | ");
   const summaryText =
@@ -84,6 +94,7 @@ export default function Home() {
   async function submitQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const submittedQuestion = question;
+    const submittedCategory = category.trim() || CATEGORY_OPTIONS[0];
     const submittedPrivacy = privacy;
 
     setError("");
@@ -91,6 +102,7 @@ export default function Home() {
     setAnalysis(null);
     setExternalResult(null);
     setEnvelope(null);
+    setResultCategory("");
     setResultPrivacy(null);
     setResultQuestion("");
     setPrivateResponseTime("");
@@ -109,6 +121,7 @@ export default function Home() {
 
       const serviceResponse = await analyzeEncryptedQuestion(encrypted.envelope, encrypted.key);
       setAnalysis(serviceResponse);
+      setResultCategory(submittedCategory);
       setResultPrivacy(submittedPrivacy);
       setResultQuestion(submittedQuestion);
       setPrivateResponseTime(formatMessageTime());
@@ -162,6 +175,7 @@ export default function Home() {
 
   function startNewQuestion() {
     setQuestion("");
+    setCategory(CATEGORY_OPTIONS[0]);
     setFiles([]);
     setFileInputKey((key) => key + 1);
     setPrivacy("private");
@@ -169,6 +183,7 @@ export default function Home() {
     setAnalysis(null);
     setExternalResult(null);
     setAnswer("");
+    setResultCategory("");
     setResultPrivacy(null);
     setResultQuestion("");
     setPrivateResponseTime("");
@@ -240,7 +255,19 @@ export default function Home() {
 
         <form className="panel intake" onSubmit={submitQuestion}>
           <label className="field">
-            <span>Medical question</span>
+            <span className="fieldHeader">
+              <span>Medical question</span>
+              <span className="categoryControl">
+                <span>Category</span>
+                <input
+                  className="categoryInput"
+                  list="medical-categories"
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value)}
+                  required
+                />
+              </span>
+            </span>
             <textarea
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
@@ -248,6 +275,11 @@ export default function Home() {
               rows={7}
               required
             />
+            <datalist id="medical-categories">
+              {CATEGORY_OPTIONS.map((option) => (
+                <option key={option} value={option} />
+              ))}
+            </datalist>
           </label>
 
           <div className="privacyGroup" aria-label="Question privacy">
