@@ -43,7 +43,48 @@ Open `http://localhost:3000`.
 7. The user must click `Approve Further Sending` before the anonymized summary is sent to mock external targets.
 8. After approval, the external answer appears at the top of the left workflow column, above the summary.
 9. Long response text is collapsed in a compact text box with `read more...`; hovering or focusing the box expands the full text.
-10. The right-hand history panel shows seeded prior questions plus new questions added during the current browser session.
+10. `New question` clears the active question, attachments, response, approval state, and handoff metadata while keeping history.
+11. The right-hand history panel shows seeded prior questions plus new questions added during the current browser session.
+
+## Main Functions To Read
+
+Start with these functions in order to understand the app flow:
+
+- `Home()` in `src/app/page.tsx`
+  The main React component. It owns all page state and composes the intake form, response cards, approval card, handoff metadata, and history panel.
+
+- `submitQuestion()` in `src/app/page.tsx`
+  The primary intake handler. It reads selected files, encrypts the payload, calls the mock private healthcare assistant, stores the route result, and records quick answers in history.
+
+- `approveExternalSend()` in `src/app/page.tsx`
+  The approval-gated external path. It sends the anonymized summary to mocked external targets only after the user clicks `Approve Further Sending`, then places the external answer at the top of the left column.
+
+- `startNewQuestion()` in `src/app/page.tsx`
+  Resets the active workflow state so the user can enter a fresh question without clearing history.
+
+- `MessageText()` in `src/app/page.tsx`
+  Shared compact message renderer. It detects long messages and shows `read more...` with hover/focus expansion.
+
+- `readMedicalDocuments()` in `src/lib/clientFlow.ts`
+  Converts selected browser `File` objects into the mock medical document payload. Text-like files are decoded; binary files get placeholder extracted text.
+
+- `encryptForAnalysisService()` in `src/lib/clientFlow.ts`
+  Packages the request with browser Web Crypto AES-GCM and returns the encrypted envelope plus local key used by the mock service.
+
+- `analyzeEncryptedQuestion()` in `src/lib/clientFlow.ts`
+  Mock private healthcare assistant. It decrypts the envelope, builds a trace, and returns either `quick_answer` or `external_summary`.
+
+- `hasHighContextNeed()` in `src/lib/clientFlow.ts`
+  The current quick-vs-external routing heuristic.
+
+- `anonymize()` in `src/lib/clientFlow.ts`
+  Regex-based redaction used before external approval.
+
+- `sendToExternalTargets()` in `src/lib/clientFlow.ts`
+  Mock external send. It simulates external targets and returns canned external answer text.
+
+- `createHistoryItem()` in `src/lib/clientFlow.ts`
+  Creates session-only history entries for the right-hand history panel.
 
 ## What Is Mocked
 
@@ -82,6 +123,7 @@ This prototype does not provide that production boundary yet. For a real service
 - To change quick-vs-external routing, edit `HIGH_CONTEXT_TERMS` and `hasHighContextNeed()` in `src/lib/clientFlow.ts`.
 - To change anonymization, edit `anonymize()` in `src/lib/clientFlow.ts`.
 - To change the approval or response ordering, edit the render order and `approveExternalSend()` in `src/app/page.tsx`.
+- To change what `New question` clears, edit `startNewQuestion()` in `src/app/page.tsx`.
 - To change result card formatting, edit `MessageText`, the title construction near `answerTitle` / `summaryTitle`, and the `.messageBox` styles.
 - To change the two-column layout or sticky history behavior, edit the `@media (min-width: 900px)` block in `src/app/globals.css`.
 
