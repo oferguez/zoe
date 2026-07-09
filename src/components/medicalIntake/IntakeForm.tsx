@@ -487,8 +487,14 @@ export function IntakeForm({
           onClick={submitOrContinue}
           disabled={isSubmitting || isSendingExternal || !canContinue}
         >
-          {isSubmitting ? "Generating..." : canSubmit ? "Generate summary" : "Continue"}
+          {isSubmitting ? "Checking your answers privately..." : canSubmit ? "Generate summary" : "Continue"}
         </button>
+        {canSubmit ? (
+          <p className="text-center text-sm font-semibold leading-5 text-ink/50">
+            Personal details like your name, address, and contact info are removed on this device
+            before anything is sent for AI analysis.
+          </p>
+        ) : null}
         {stepIndex > 0 ? (
           <button className="text-base font-bold text-ink/55 transition hover:text-ink" type="button" onClick={goBack}>
             Back

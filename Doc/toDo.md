@@ -1,6 +1,13 @@
-## Theusday
+### Theusday
+# summary flow
+- cta: tap to continute send to local ai for Privacy Guard before open ai on the medical advise
+- lead to summary page where allows user to edit the summary if needed 
+- user can either post to community or save it for gp appointment
+
+
 - should work on gp summary UI
 - create the api service?
+
 
 
 

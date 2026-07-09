@@ -1,3 +1,21 @@
+import type { UserProfile } from "@/lib/models/userProfile";
+
+function slugify(value: string) {
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || "patient"
+  );
+}
+
+export function buildReportFilename(userProfile: UserProfile, createdAt: string) {
+  const namePart = slugify(userProfile.preferredName);
+  const datePart = new Date(createdAt).toISOString().slice(0, 10);
+  return `${namePart}-${datePart}-eliza-gp-summary.txt`;
+}
+
 export function downloadTextReport({
   filename,
   text

@@ -159,7 +159,7 @@ function toTagList(value: string) {
     .filter(hasUsefulValue);
 }
 
-function buildCommunitySummary(draft: CommunityDraftSource) {
+export function buildCommunitySummary(draft: CommunityDraftSource) {
   const source = draft.sourceQuestion || "";
   const concerns = firstUseful(readPromptField(source, "Main concerns"), "pain symptoms");
   const regions = readPromptField(source, "Pain regions");

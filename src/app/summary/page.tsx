@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   COMMUNITY_POSTS_STORAGE_KEY,
@@ -10,6 +11,7 @@ import {
   type SummaryDraft
 } from "@/lib/clientFlow";
 import type { SummaryReviewItem } from "@/lib/models";
+import { mockUserProfile } from "@/lib/mocks";
 import {
   readJson,
   readJsonArray,
@@ -21,9 +23,12 @@ import {
   buildKeptSummary,
   buildSummaryReviewItems
 } from "@/lib/services/summaryService";
-import { downloadTextReport } from "@/lib/services/reportDownloadService";
+import { buildReportFilename, downloadTextReport } from "@/lib/services/reportDownloadService";
+import { buildPublicSummaryDto } from "@/lib/services/dtoSummaryService";
+import { CommunityPostCard } from "@/components/medicalIntake/CommunityPostCard";
 
 export default function SummaryPage() {
+  const router = useRouter();
   const [draft, setDraft] = useState<SummaryDraft | null>(null);
   const [reviewItems, setReviewItems] = useState<SummaryReviewItem[]>([]);
   const [status, setStatus] = useState("");
@@ -40,6 +45,11 @@ export default function SummaryPage() {
     if (!draft) return "";
     return buildKeptSummary(reviewItems, draft);
   }, [draft, reviewItems]);
+
+  const publicSummary = useMemo(() => {
+    if (!draft) return null;
+    return buildPublicSummaryDto(draft, mockUserProfile);
+  }, [draft]);
 
   function persistReviewedDraft() {
     if (!draft) return null;
@@ -63,13 +73,20 @@ export default function SummaryPage() {
   function downloadReport() {
     const updated = persistReviewedDraft();
     if (!updated) return;
-    const report = buildGpSummaryReport(updated, keptSummary);
-    downloadTextReport({ filename: "eliza-gp-summary.txt", text: report });
+    const report = buildGpSummaryReport(updated, reviewItems, mockUserProfile);
+    downloadTextReport({
+      filename: buildReportFilename(mockUserProfile, updated.createdAt),
+      text: report
+    });
     setStatus("Downloaded report.");
   }
 
   function removeItem(id: string) {
     setReviewItems((items) => items.filter((item) => item.id !== id));
+  }
+
+  function findItem(id: string) {
+    return reviewItems.find((item) => item.id === id) || null;
   }
 
   if (!draft) {
@@ -91,6 +108,16 @@ export default function SummaryPage() {
     );
   }
 
+  const highlightItem = findItem("symptoms") || findItem("summary");
+  const durationItem = findItem("duration");
+  const triggerItem = findItem("trigger");
+  const helpsItem = findItem("helps");
+  const urgentItem = findItem("urgent");
+  const groupedIds = new Set(
+    [highlightItem?.id, durationItem?.id, triggerItem?.id, helpsItem?.id, urgentItem?.id].filter(Boolean)
+  );
+  const detailItems = reviewItems.filter((item) => !groupedIds.has(item.id));
+
   return (
     <main className="min-h-dvh bg-white px-5 py-6 text-ink md:px-10">
       <section className="mx-auto grid w-full max-w-6xl gap-16">
@@ -101,7 +128,7 @@ export default function SummaryPage() {
             </span>
             <span className="text-sm font-black uppercase tracking-[0.22em] text-ink/55">eliza</span>
           </Link>
-          <span className="rounded-full bg-cornflower-blue/10 px-4 py-2 text-sm font-black text-ink">
+          <span className="rounded-full bg-cornflower-blue/60 px-4 py-2 text-sm font-black text-foreground/40">
             Private
           </span>
         </header>
@@ -118,35 +145,69 @@ export default function SummaryPage() {
               </p>
             </div>
 
-            <div className="grid gap-4">
-              {reviewItems.map((item) => (
-                <article
-                  className="grid grid-cols-[1fr_auto] items-center gap-4 rounded-[1.25rem] border-2 border-ink/10 bg-white px-6 py-5"
-                  key={item.id}
-                >
-                  <div className="min-w-0">
-                    <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-ink/45">
-                      {item.label}
-                    </p>
-                    <p className="break-words text-lg font-bold leading-7 text-ink">{item.value}</p>
+            {reviewItems.length ? (
+              <article className="rounded-3xl border border-cornflower-blue/12 bg-white/90 p-6 shadow-[0_18px_55px_rgba(40,45,69,0.06)] md:p-8">
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-11 w-11 place-items-center rounded-full bg-cornflower-blue/12 text-xl font-black text-cornflower-blue">
+                      {mockUserProfile.preferredName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="text-sm text-ink/60">
+                      <p className="font-black text-ink">{mockUserProfile.preferredName}</p>
+                      <p>
+                        {mockUserProfile.ageRange} • {mockUserProfile.sexOrGender}
+                      </p>
+                    </div>
                   </div>
-                  <button
-                    className="grid h-10 w-10 place-items-center rounded-full border-2 border-ink/10 text-2xl leading-none text-ink/45 transition hover:border-red-potion/30 hover:text-red-potion"
-                    type="button"
-                    onClick={() => removeItem(item.id)}
-                    aria-label={`Remove ${item.label}`}
-                  >
-                    ×
-                  </button>
-                </article>
-              ))}
-            </div>
+                  <span className="rounded-full bg-cornflower-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-cornflower-blue">
+                    Draft summary
+                  </span>
+                </div>
+
+                {highlightItem ? (
+                  <ReviewHighlight label="Summary" item={highlightItem} onRemove={removeItem} />
+                ) : null}
+
+                {durationItem || triggerItem || helpsItem ? (
+                  <div className="mb-6 grid gap-5 border-b border-ink/10 pb-6 md:grid-cols-3">
+                    {durationItem ? (
+                      <ReviewField label="Duration" item={durationItem} onRemove={removeItem} />
+                    ) : null}
+                    {triggerItem ? (
+                      <ReviewField label="Triggers noticed" item={triggerItem} onRemove={removeItem} />
+                    ) : null}
+                    {helpsItem ? (
+                      <ReviewField label="What helps" item={helpsItem} onRemove={removeItem} />
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {urgentItem ? (
+                  <ReviewHighlight
+                    label="Safety note"
+                    item={urgentItem}
+                    onRemove={removeItem}
+                    tone="danger"
+                  />
+                ) : null}
+
+                {detailItems.length ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {detailItems.map((item) => (
+                      <ReviewDetail key={item.id} item={item} onRemove={removeItem} />
+                    ))}
+                  </div>
+                ) : null}
+              </article>
+            ) : (
+              <p className="rounded-3xl border border-ink/10 bg-soft-linen p-6 text-base font-semibold text-ink/60">
+                You removed everything from this draft. Go back to the questionnaire to add details.
+              </p>
+            )}
 
             <p className="max-w-2xl text-sm font-semibold leading-7 text-ink/45">
-              Not included: file metadata, unrelated lab values, and anything eliza could identify
-              as personal information.
+              by tapping the continute button. Your info will be process internally to generate a GP-ready summary or post. You can always come back to this page to edit what you keep.
             </p>
-
             <button
               className="min-h-16 rounded-[1.1rem] bg-ink px-6 text-lg font-black text-white transition hover:bg-ink/90 focus:outline-none focus:ring-4 focus:ring-cornflower-blue/20 disabled:cursor-not-allowed disabled:bg-ink/20"
               type="button"
@@ -175,6 +236,42 @@ export default function SummaryPage() {
               </p>
             </div>
 
+            {publicSummary ? (
+              <div className="grid gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-cornflower-blue">
+                    Preview — how this post will look
+                  </p>
+                  <span className="rounded-full bg-red-potion/10 px-3 py-1 text-xs font-black text-red-potion">
+                    Private data removed
+                  </span>
+                </div>
+
+                <CommunityPostCard post={publicSummary.post} interactive={false} />
+
+                {publicSummary.redactedFields.length ? (
+                  <div className="grid gap-2 rounded-[1.5rem] border-2 border-cornflower-blue/15 bg-linen-white/70 p-6 md:p-8">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-ink/45">
+                      Removed before this leaves your device
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {publicSummary.redactedFields.map((field) => (
+                        <span
+                          key={field.field}
+                          className="rounded-full border border-red-potion/20 bg-white px-3 py-1 text-xs font-bold text-ink/60"
+                        >
+                          {field.field}:{" "}
+                          <span className="text-red-potion line-through decoration-2">
+                            {field.originalValue}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             <div className="grid gap-5">
               <ExportAction
                 title="Share anonymously with the community"
@@ -192,12 +289,17 @@ export default function SummaryPage() {
                 onClick={downloadReport}
               />
 
+              {/*
+                TODO(ai-agent): /chat is a UI-only preview right now. Once the private
+                conversational agent exists, seed its session with this draft/reviewItems
+                (e.g. via router state or a storage key) instead of a bare navigation.
+              */}
               <ExportAction
-                title="Save privately"
-                body="Coming soon. This will save the report to your account without sharing it."
-                buttonLabel="Coming soon"
-                marker="lock"
-                disabled
+                title="Speak privately with eliza"
+                body="Continue one-to-one with eliza to ask follow-up questions and refine this summary before you decide what to do with it."
+                buttonLabel="Open private chat"
+                marker="agent"
+                onClick={() => router.push("/chat")}
               />
 
             </div>
@@ -223,6 +325,83 @@ export default function SummaryPage() {
   );
 }
 
+function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      className="text-lg leading-none text-ink/30 transition hover:text-red-potion"
+      type="button"
+      onClick={onClick}
+      aria-label={`Remove ${label}`}
+    >
+      ×
+    </button>
+  );
+}
+
+function ReviewHighlight({
+  label,
+  item,
+  onRemove,
+  tone = "neutral"
+}: {
+  label: string;
+  item: SummaryReviewItem;
+  onRemove: (id: string) => void;
+  tone?: "neutral" | "danger";
+}) {
+  const toneClasses =
+    tone === "danger" ? "border border-red-potion/30 bg-red-potion/10" : "bg-linen-white/75";
+  const titleClasses = tone === "danger" ? "text-red-potion" : "text-ink";
+
+  return (
+    <section className={`mb-6 rounded-2xl p-5 ${toneClasses}`}>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h3 className={`font-black ${titleClasses}`}>{label}</h3>
+        <RemoveButton label={label} onClick={() => onRemove(item.id)} />
+      </div>
+      <p className="text-base font-semibold leading-7 text-ink/85">{item.value}</p>
+    </section>
+  );
+}
+
+function ReviewField({
+  label,
+  item,
+  onRemove
+}: {
+  label: string;
+  item: SummaryReviewItem;
+  onRemove: (id: string) => void;
+}) {
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="font-black text-cornflower-blue">{label}</h3>
+        <RemoveButton label={label} onClick={() => onRemove(item.id)} />
+      </div>
+      <p className="text-sm font-semibold leading-6 text-ink/75">{item.value}</p>
+    </section>
+  );
+}
+
+function ReviewDetail({
+  item,
+  onRemove
+}: {
+  item: SummaryReviewItem;
+  onRemove: (id: string) => void;
+}) {
+  return (
+    <section className="rounded-2xl border border-cornflower-blue/12 bg-linen-white/45 p-4">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <strong className="text-sm text-ink">{item.label}</strong>
+        <RemoveButton label={item.label} onClick={() => onRemove(item.id)} />
+      </div>
+      <p className="break-words text-sm font-medium leading-6 text-ink/70">{item.value}</p>
+    </section>
+  );
+}
+
 function ExportAction({
   title,
   body,
@@ -234,7 +413,7 @@ function ExportAction({
   title: string;
   body: string;
   buttonLabel: string;
-  marker: "three" | "lock" | "arrow";
+  marker: "three" | "lock" | "arrow" | "agent";
   onClick?: () => void;
   disabled?: boolean;
 }) {
@@ -244,6 +423,7 @@ function ExportAction({
         {marker === "three" ? <span className="text-2xl leading-none">∴</span> : null}
         {marker === "lock" ? <span className="text-lg leading-none">LOCK</span> : null}
         {marker === "arrow" ? <span className="text-3xl leading-none">↓</span> : null}
+        {marker === "agent" ? <span className="text-2xl leading-none">✦</span> : null}
       </span>
       <div className="grid gap-1">
         <h2 className="text-xl font-black text-ink md:text-2xl">{title}</h2>
