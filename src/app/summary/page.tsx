@@ -22,12 +22,14 @@ import {
   buildSummaryReviewItems
 } from "@/lib/services/summaryService";
 import { downloadTextReport } from "@/lib/services/reportDownloadService";
+import { getChatSessionId, sendChatMessage } from "@/lib/services/chatService";
 
 export default function SummaryPage() {
   const [draft, setDraft] = useState<SummaryDraft | null>(null);
   const [reviewItems, setReviewItems] = useState<SummaryReviewItem[]>([]);
   const [status, setStatus] = useState("");
   const [mode, setMode] = useState<"review" | "export">("review");
+  const [isSavingToVault, setIsSavingToVault] = useState(false);
 
   useEffect(() => {
     const stored = readJson<SummaryDraft>(SUMMARY_DRAFT_STORAGE_KEY);
@@ -68,6 +70,29 @@ export default function SummaryPage() {
     setStatus("Downloaded report.");
   }
 
+  async function saveToVault() {
+    const updated = persistReviewedDraft();
+    if (!updated) return;
+    const report = buildGpSummaryReport(updated, keptSummary);
+    setIsSavingToVault(true);
+    try {
+      await sendChatMessage(
+        [
+          {
+            role: "user",
+            content: `Please store this in my medical records vault:\n\n${report}`
+          }
+        ],
+        getChatSessionId()
+      );
+      setStatus("Sent to eliza to save in your private vault.");
+    } catch {
+      setStatus("Couldn't reach eliza to save this. Please try again.");
+    } finally {
+      setIsSavingToVault(false);
+    }
+  }
+
   function removeItem(id: string) {
     setReviewItems((items) => items.filter((item) => item.id !== id));
   }
@@ -94,21 +119,12 @@ export default function SummaryPage() {
   return (
     <main className="min-h-dvh bg-white px-5 py-6 text-ink md:px-10">
       <section className="mx-auto grid w-full max-w-6xl gap-16">
-        <header className="flex items-center justify-between gap-4 print:hidden">
-          <Link href="/" className="flex items-center gap-3" aria-label="Back to home">
-            <span className="grid h-11 w-11 place-items-center rounded-full bg-cornflower-blue/10">
-              <span className="h-2.5 w-2.5 rounded-full bg-ink/80" />
-            </span>
-            <span className="text-sm font-black uppercase tracking-[0.22em] text-ink/55">eliza</span>
-          </Link>
-          <span className="rounded-full bg-cornflower-blue/10 px-4 py-2 text-sm font-black text-ink">
-            Private
-          </span>
-        </header>
-
         {mode === "review" ? (
           <section className="mx-auto grid w-full max-w-3xl gap-9">
             <div className="grid gap-4">
+              <span className="w-fit rounded-full bg-cornflower-blue/10 px-4 py-2 text-sm font-black text-ink">
+                Private
+              </span>
               <h1 className="text-4xl font-black leading-[1.05] text-ink md:text-5xl">
                 Here&apos;s what I&apos;ve picked out
               </h1>
@@ -166,6 +182,9 @@ export default function SummaryPage() {
         ) : (
           <section className="mx-auto grid w-full max-w-4xl gap-12">
             <div className="grid gap-4">
+              <span className="w-fit rounded-full bg-cornflower-blue/10 px-4 py-2 text-sm font-black text-ink">
+                Private
+              </span>
               <h1 className="text-4xl font-black leading-[1.05] text-ink md:text-5xl">
                 What would you like to do with this?
               </h1>
@@ -193,11 +212,12 @@ export default function SummaryPage() {
               />
 
               <ExportAction
-                title="Save privately"
-                body="Coming soon. This will save the report to your account without sharing it."
-                buttonLabel="Coming soon"
+                title="Save to vault"
+                body="Sends this report to eliza to keep, encrypted, in your private medical records vault. Nothing is shared."
+                buttonLabel={isSavingToVault ? "Saving…" : "Save"}
                 marker="lock"
-                disabled
+                onClick={saveToVault}
+                disabled={isSavingToVault}
               />
 
             </div>

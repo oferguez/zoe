@@ -1,7 +1,6 @@
 "use client";
 
 import { type FormEvent, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { IntakeForm } from "@/components/medicalIntake/IntakeForm";
 import { QUESTIONNAIRE_STORAGE_KEY, type PrivacyMode } from "@/lib/clientFlow";
@@ -64,29 +63,6 @@ export default function QuestionnairePage() {
   return (
     <main className="min-h-dvh bg-linen-white px-4 py-6 text-ink md:px-8">
       <section className="mx-auto grid min-h-[calc(100dvh-3rem)] w-full max-w-[940px] gap-8 bg-white px-8 py-6 shadow-[0_24px_80px_rgba(40,45,69,0.08)] md:px-14">
-        <div className="grid grid-cols-[3rem_1fr_3rem] items-center">
-          <Link
-            href="/"
-            className="text-6xl leading-none text-ink/80 transition hover:text-red-potion focus:outline-none focus:ring-4 focus:ring-royal-yellow/50"
-            aria-label="Back to home"
-          >
-            ‹
-          </Link>
-          {/* <span className="justify-self-center text-xl font-black italic leading-none text-royal-yellow">
-            eliza
-          </span> */}
-
-          <div className="justify-self-center justify-between">
-          <Link href="/" className="flex items-center gap-3" aria-label="Back to home">
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-cornflower-blue/12">
-              <span className="h-2.5 w-2.5 rounded-full bg-ink/75" />
-            </span>
-            <span className="text-sm font-black uppercase tracking-[0.22em] text-ink/55">eliza</span>
-          </Link>
-        </div>
-
-        </div>
-
         <section className="grid gap-3 rounded-[1.25rem] border border-cornflower-blue/20 bg-cornflower-blue/10 p-4">
           <div className="grid gap-1">
             <p className="text-sm font-black uppercase tracking-[0.14em] text-cornflower-blue">

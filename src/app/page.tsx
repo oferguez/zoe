@@ -1,20 +1,9 @@
 import Link from "next/link";
-import { CommunityFeed } from "@/components/medicalIntake/CommunityFeed";
-import { mockCommunityPosts } from "@/lib/mocks/communityMocks";
 
 export default function Home() {
   return (
-    <main className="min-h-dvh bg-paper px-5 py-8 text-ink md:px-10">
+    <main className="min-h-dvh bg-oat-cream px-5 py-8 text-ink md:px-10">
       <section className="mx-auto grid w-full max-w-6xl gap-14 px-0 py-4 md:py-6">
-        <header className="flex items-center justify-between gap-4 print:hidden">
-          <Link href="/" className="flex items-center gap-3" aria-label="Back to home">
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-cornflower-blue/12">
-              <span className="h-2.5 w-2.5 rounded-full bg-ink/75" />
-            </span>
-            <span className="text-sm font-black uppercase tracking-[0.22em] text-ink/55">eliza</span>
-          </Link>
-        </header>
-
         <section className="relative overflow-hidden rounded-[2.25rem] bg-linen-white px-6 py-7 shadow-[0_22px_70px_rgba(40,45,69,0.07)] md:rounded-[3rem] md:px-10 md:py-10">
           <div className="absolute -right-14 -top-16 h-44 w-44 rounded-full bg-cornflower-blue/20" />
           <div className="absolute -bottom-20 left-16 h-44 w-44 rounded-full bg-royal-yellow/10" />
@@ -51,22 +40,6 @@ export default function Home() {
               </span>
             </Link>
           </div>
-        </section>
-
-        <section className="grid gap-5">
-          <div className="grid gap-2">
-            <p className="text-sm font-black uppercase tracking-[0.14em] text-cornflower-blue">
-              Community examples
-            </p>
-            <h2 className="text-2xl font-black text-ink md:text-3xl">
-              See how eliza keeps posts structured and safe
-            </h2>
-            <p className="max-w-2xl text-base font-medium leading-7 text-ink/60">
-              These mock posts show how guided answers can become clearer posts with safe AI
-              guidance and clinician-style context.
-            </p>
-          </div>
-          <CommunityFeed posts={mockCommunityPosts} />
         </section>
       </section>
     </main>
