@@ -1,317 +1,73 @@
-"use client";
-
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import {
-  analyzeEncryptedQuestion,
-  createHistoryItem,
-  encryptForAnalysisService,
-  mockHistory,
-  readMedicalDocuments,
-  sendToExternalTargets,
-  type AnalysisResponse,
-  type EncryptedEnvelope,
-  type ExternalResult,
-  type HistoryItem,
-  type PrivacyMode
-} from "@/lib/clientFlow";
-
-function formatMessageTime() {
-  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function isLongMessage(text: string) {
-  return text.length > 260 || text.split("\n").length > 4;
-}
-
-function MessageText({ text }: { text: string }) {
-  const isLong = isLongMessage(text);
-
-  return (
-    <div className={`messageBox${isLong ? " isLong" : ""}`} tabIndex={isLong ? 0 : undefined}>
-      <pre>{text}</pre>
-      {isLong ? <span className="readMore">read more...</span> : null}
-    </div>
-  );
-}
+import Link from "next/link";
+import { CommunityFeed } from "@/components/medicalIntake/CommunityFeed";
+import { mockCommunityPosts } from "@/lib/mocks/communityMocks";
 
 export default function Home() {
-  const [question, setQuestion] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
-  const [privacy, setPrivacy] = useState<PrivacyMode>("private");
-  const [envelope, setEnvelope] = useState<EncryptedEnvelope | null>(null);
-  const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
-  const [externalResult, setExternalResult] = useState<ExternalResult | null>(null);
-  const [history, setHistory] = useState<HistoryItem[]>(mockHistory);
-  const [answer, setAnswer] = useState("");
-  const [resultPrivacy, setResultPrivacy] = useState<PrivacyMode | null>(null);
-  const [resultQuestion, setResultQuestion] = useState("");
-  const [privateResponseTime, setPrivateResponseTime] = useState("");
-  const [externalAnswerTime, setExternalAnswerTime] = useState("");
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSendingExternal, setIsSendingExternal] = useState(false);
-  const responseRef = useRef<HTMLElement | null>(null);
-
-  const fileSummary = useMemo(() => {
-    if (!files.length) return "No documents selected";
-    return files.map((file) => `${file.name} (${Math.ceil(file.size / 1024)} KB)`).join(", ");
-  }, [files]);
-
-  const yourHistory = history.filter((item) => item.owner === "you");
-  const publicHistory = history.filter((item) => item.owner === "other" && item.privacy === "public");
-  const resultPrivacyLabel =
-    resultPrivacy === "private" ? "Private selected" : resultPrivacy === "public" ? "Public selected" : "";
-  const answerKind = analysis?.kind === "quick_answer" ? "Quick Private Answer" : "External Answer";
-  const answerTitle = [externalResult ? externalAnswerTime : privateResponseTime, answerKind, resultPrivacyLabel]
-    .filter(Boolean)
-    .join(" | ");
-  const answerText = answer.replace(/^(Quick answer|External answer)\n\n/, "");
-  const summaryTitle = [privateResponseTime, "Publish Approval Required", resultPrivacyLabel]
-    .filter(Boolean)
-    .join(" | ");
-  const summaryText =
-    analysis?.kind === "external_summary"
-      ? analysis.summary.replace(/^Anonymized medical question for external analysis:\n\n/, "")
-      : "";
-
-  useEffect(() => {
-    if (!analysis && !answer) return;
-    responseRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [analysis, answer]);
-
-  async function submitQuestion(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const submittedQuestion = question;
-    const submittedPrivacy = privacy;
-
-    setError("");
-    setAnswer("");
-    setAnalysis(null);
-    setExternalResult(null);
-    setEnvelope(null);
-    setResultPrivacy(null);
-    setResultQuestion("");
-    setPrivateResponseTime("");
-    setExternalAnswerTime("");
-    setIsSubmitting(true);
-    setIsSendingExternal(false);
-
-    try {
-      const documents = await readMedicalDocuments(files);
-      const encrypted = await encryptForAnalysisService({
-        question: submittedQuestion,
-        privacy: submittedPrivacy,
-        documents
-      });
-      setEnvelope(encrypted.envelope);
-
-      const serviceResponse = await analyzeEncryptedQuestion(encrypted.envelope, encrypted.key);
-      setAnalysis(serviceResponse);
-      setResultPrivacy(submittedPrivacy);
-      setResultQuestion(submittedQuestion);
-      setPrivateResponseTime(formatMessageTime());
-
-      if (serviceResponse.kind === "quick_answer") {
-        setAnswer(serviceResponse.answer);
-        setHistory((items) => [
-          createHistoryItem({
-            question: submittedQuestion,
-            privacy: submittedPrivacy,
-            resultType: "quick",
-            answer: serviceResponse.answer
-          }),
-          ...items
-        ]);
-        return;
-      }
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Question processing failed.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function approveExternalSend() {
-    if (analysis?.kind !== "external_summary" || !resultPrivacy) return;
-
-    setError("");
-    setIsSendingExternal(true);
-
-    try {
-      const result = await sendToExternalTargets(analysis.summary, resultPrivacy);
-      setExternalResult(result);
-      setAnswer(result.answer);
-      setExternalAnswerTime(formatMessageTime());
-      setHistory((items) => [
-        createHistoryItem({
-          question: resultQuestion,
-          privacy: resultPrivacy,
-          resultType: "external",
-          answer: result.answer
-        }),
-        ...items
-      ]);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "External sending failed.");
-    } finally {
-      setIsSendingExternal(false);
-    }
-  }
-
   return (
-    <main className="shell">
-      <section className="workspace" aria-label="Question workspace">
-        <div className="intro">
-          <p className="eyebrow">Client-side medical intake</p>
-          <h1>Zoe Assist</h1>
-          <p>
-            A frontend-only prototype that encrypts the query package before handing it to a
-            mock analysis service.
-          </p>
-        </div>
+    <main className="min-h-dvh bg-paper px-5 py-8 text-ink md:px-10">
+      <section className="mx-auto grid w-full max-w-6xl gap-14 px-0 py-4 md:py-6">
+        <header className="flex items-center justify-between gap-4 print:hidden">
+          <Link href="/" className="flex items-center gap-3" aria-label="Back to home">
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-cornflower-blue/12">
+              <span className="h-2.5 w-2.5 rounded-full bg-ink/75" />
+            </span>
+            <span className="text-sm font-black uppercase tracking-[0.22em] text-ink/55">eliza</span>
+          </Link>
+        </header>
 
-        {answer ? (
-          <section className="panel result" ref={responseRef}>
-            <div className="responseHeader">
-              <h2>{answerTitle}</h2>
-            </div>
-            <MessageText text={answerText} />
-            {analysis ? <div className="trace">{analysis.trace.join(" / ")}</div> : null}
-          </section>
-        ) : null}
+        <section className="relative overflow-hidden rounded-[2.25rem] bg-linen-white px-6 py-7 shadow-[0_22px_70px_rgba(40,45,69,0.07)] md:rounded-[3rem] md:px-10 md:py-10">
+          <div className="absolute -right-14 -top-16 h-44 w-44 rounded-full bg-cornflower-blue/20" />
+          <div className="absolute -bottom-20 left-16 h-44 w-44 rounded-full bg-royal-yellow/10" />
 
-        {analysis?.kind === "external_summary" ? (
-          <section className="panel summaryPanel" ref={answer ? undefined : responseRef}>
-            <div className="responseHeader">
-              <h2>{summaryTitle}</h2>
-            </div>
-            {externalResult ? (
-              <div className="chips">
-                {externalResult.targets.map((target) => (
-                  <span key={target}>{target}</span>
-                ))}
+          <div className="relative grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
+            <div className="grid max-w-2xl gap-5">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-full bg-white/75 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-cornflower-blue">
+                  Guided post
+                </span>
+                <span className="rounded-full bg-red-potion/10 px-3 py-1 text-xs font-bold text-red-potion">
+                  Private by default
+                </span>
               </div>
-            ) : (
-              <button
-                className="primary"
-                type="button"
-                onClick={approveExternalSend}
-                disabled={isSubmitting || isSendingExternal}
-              >
-                {isSendingExternal ? "Sending..." : "Approve Further Sending"}
-              </button>
-            )}
-            <MessageText text={summaryText} />
-            <div className="chips">
-              {analysis.redactions.map((item) => (
-                <span key={item}>{item}</span>
-              ))}
+
+              <div className="grid gap-3">
+                <h1 className="max-w-2xl text-3xl font-black leading-[1.04] text-ink md:text-5xl">
+                  Are you experiencing chronic pain?
+                </h1>
+                <p className="max-w-xl text-base font-medium leading-7 text-ink/70 md:text-lg">
+                  Answer a few guided questions. eliza turns them into a clear summary you can
+                  keep private, share anonymously, or bring to a GP.
+                </p>
+              </div>
             </div>
-          </section>
-        ) : null}
 
-        <form className="panel intake" onSubmit={submitQuestion}>
-          <label className="field">
-            <span>Medical question</span>
-            <textarea
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-              placeholder="Ask a medical question"
-              rows={7}
-              required
-            />
-          </label>
-
-          <div className="privacyGroup" aria-label="Question privacy">
-            <label className={privacy === "private" ? "selected" : ""}>
-              <input
-                type="radio"
-                name="privacy"
-                value="private"
-                checked={privacy === "private"}
-                onChange={() => setPrivacy("private")}
-              />
-              <span>Private</span>
-              <small>External public targets are skipped.</small>
-            </label>
-            <label className={privacy === "public" ? "selected" : ""}>
-              <input
-                type="radio"
-                name="privacy"
-                value="public"
-                checked={privacy === "public"}
-                onChange={() => setPrivacy("public")}
-              />
-              <span>Public</span>
-              <small>Anonymized version may be sent to public forums.</small>
-            </label>
+            <Link
+              href="/questionnaire"
+              className="group inline-flex min-h-14 items-center justify-center gap-3 rounded-full bg-ink px-6 text-base font-black text-white transition duration-200 hover:-translate-y-0.5 hover:bg-ink/90 focus:outline-none focus:ring-4 focus:ring-cornflower-blue/30 active:translate-y-0 md:min-h-16 md:px-8"
+            >
+              Start questionnaire
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-royal-yellow text-2xl font-light leading-none text-ink transition group-hover:scale-105">
+                +
+              </span>
+            </Link>
           </div>
+        </section>
 
-          <label className="fileDrop">
-            <input
-              type="file"
-              multiple
-              onChange={(event) => setFiles(Array.from(event.target.files || []))}
-            />
-            <span>Attach documents</span>
-            <small>{fileSummary}</small>
-          </label>
-
-          <button className="primary" type="submit" disabled={isSubmitting || isSendingExternal}>
-            {isSubmitting ? "Analyzing..." : "Send to Private Healthcare Assistant"}
-          </button>
-        </form>
-
-        {error ? <div className="notice error">{error}</div> : null}
-
-        {envelope ? (
-          <section className="panel statusPanel">
-            <p className="eyebrow">Encrypted handoff</p>
-            <h2>Package sent to analysis service</h2>
-            <div className="chips">
-              <span>{envelope.algorithm}</span>
-              <span>{envelope.documentCount} documents</span>
-              <span>{Math.ceil(envelope.payloadBytes / 1024)} KB payload</span>
-              <span>{Math.ceil(envelope.ciphertext.length / 1024)} KB ciphertext</span>
-            </div>
-          </section>
-        ) : null}
-
-        <aside className="panel historyPanel">
-          <div>
-            <p className="eyebrow">History</p>
-            <h2>Your prior questions</h2>
+        <section className="grid gap-5">
+          <div className="grid gap-2">
+            <p className="text-sm font-black uppercase tracking-[0.14em] text-cornflower-blue">
+              Community examples
+            </p>
+            <h2 className="text-2xl font-black text-ink md:text-3xl">
+              See how eliza keeps posts structured and safe
+            </h2>
+            <p className="max-w-2xl text-base font-medium leading-7 text-ink/60">
+              These mock posts show how guided answers can become clearer posts with safe AI
+              guidance and clinician-style context.
+            </p>
           </div>
-          <div className="historyList">
-            {yourHistory.map((item) => (
-              <article key={item.id}>
-                <div className="historyMeta">
-                  <span>{item.privacy}</span>
-                  <span>{item.resultType}</span>
-                </div>
-                <h3>{item.question}</h3>
-                <p>{item.answer}</p>
-              </article>
-            ))}
-          </div>
-
-          <div>
-            <p className="eyebrow">Public forum</p>
-            <h2>Public questions from others</h2>
-          </div>
-          <div className="historyList">
-            {publicHistory.map((item) => (
-              <article key={item.id}>
-                <div className="historyMeta">
-                  <span>public</span>
-                  <span>{item.resultType}</span>
-                </div>
-                <h3>{item.question}</h3>
-                <p>{item.answer}</p>
-              </article>
-            ))}
-          </div>
-        </aside>
+          <CommunityFeed posts={mockCommunityPosts} />
+        </section>
       </section>
     </main>
   );
