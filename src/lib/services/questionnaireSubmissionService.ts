@@ -8,6 +8,11 @@ import {
 } from "@/lib/clientFlow";
 import { writeJson } from "@/lib/services/browserStorage";
 
+// TODO(backend): this is where the questionnaire hands off on submit. Real flow should be:
+// readMedicalDocuments -> local Privacy Guard redaction -> POST /api/analyze (sanitized context
+// only) -> OpenAI -> structured ElizaReport. Right now encryptForAnalysisService/
+// analyzeEncryptedQuestion in analysisService.ts fake that with client-side crypto and a regex
+// redactor, no network call happens. Wire the real analysisService.ts (see Doc/toDo.md) here.
 export async function createSummaryDraftFromQuestion({
   question,
   privacy,

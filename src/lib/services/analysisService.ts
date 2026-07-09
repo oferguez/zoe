@@ -108,6 +108,12 @@ function anonymize(input: string) {
   };
 }
 
+// TODO(backend): this whole function is the mock stand-in for the real pipeline in Doc/doc.md:
+// tap "Continue" -> local Privacy Guard strips PII (name, DOB, address, NHS number, email, phone)
+// -> sanitized clinical context sent to our backend -> backend calls OpenAI -> structured JSON back.
+// Today `anonymize()` below is a rough regex pass and everything happens client-side with a fake
+// AES-GCM envelope; there is no backend call and no real LLM. See Doc/toDo.md phases 2-3 for the
+// intended `analyzeQuestionnaire()` / `/api/analyze` contract this should be replaced with.
 export async function analyzeEncryptedQuestion(envelope: EncryptedEnvelope, key: CryptoKey) {
   await new Promise((resolve) => setTimeout(resolve, 450));
   const payload = await decryptForMockService(envelope, key);
