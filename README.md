@@ -1,4 +1,4 @@
-# Zoe Assist Kickoff
+# eliza
 
 A frontend-only Next.js prototype for medical question intake, optional document upload, browser-side encryption, mock private healthcare routing, approval-gated external escalation, and in-memory question history.
 

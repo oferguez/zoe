@@ -194,16 +194,11 @@ export default function Home() {
   }
 
   return (
-    <main className="shell">
-      <section className="workspace" aria-label="Question workspace">
-        <div className="intro">
-          <p className="eyebrow">Client-side medical intake</p>
-          <h1>Zoe Assist</h1>
-          <p>
-            A frontend-only prototype that encrypts the query package before handing it to a
-            mock analysis service.
-          </p>
-        </div>
+    <main className="min-h-dvh bg-oat-cream px-5 py-8 text-ink md:px-10">
+      <section className="mx-auto grid w-full max-w-6xl gap-14 px-0 py-4 md:py-6">
+        <section className="relative overflow-hidden rounded-[2.25rem] bg-linen-white px-6 py-8 shadow-[0_22px_70px_rgba(40,45,69,0.07)] md:rounded-[3rem] md:px-10 md:py-12">
+          <div className="absolute -right-14 -top-16 h-44 w-44 rounded-full bg-cornflower-blue/20" />
+          <div className="absolute -bottom-20 left-16 h-44 w-44 rounded-full bg-royal-yellow/10" />
 
         {answer ? (
           <section className="panel result" ref={responseRef}>
@@ -241,17 +236,10 @@ export default function Home() {
                 onClick={approveExternalSend}
                 disabled={isWorking}
               >
-                {isSendingExternal ? "Sending..." : "Approve Further Sending"}
-              </button>
-            )}
-            <MessageText text={summaryText} />
-            <div className="chips">
-              {analysis.redactions.map((item) => (
-                <span key={item}>{item}</span>
-              ))}
+                Not ready? See posts from our community
+                <span aria-hidden="true">→</span>
+              </Link>
             </div>
-          </section>
-        ) : null}
 
         <form className="panel intake" onSubmit={submitQuestion}>
           <label className="field">
