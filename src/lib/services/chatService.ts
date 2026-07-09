@@ -3,8 +3,6 @@ export type ChatMessage = {
   content: string;
 };
 
-export const APPROVAL_MARKER = "APPROVAL NEEDED:";
-
 const SESSION_STORAGE_KEY = "eliza.privateChatSessionId";
 
 // Shared across the /private chat and any other feature (e.g. "Save to vault") that talks to
@@ -17,9 +15,35 @@ export function getChatSessionId(): string {
   return created;
 }
 
-export function extractApprovalDraft(content: string): string | null {
-  if (!content.includes(APPROVAL_MARKER)) return null;
-  return content.split(APPROVAL_MARKER)[1]?.trim() ?? "";
+export type ApprovalExtraction = {
+  beforeText: string;
+  draftText: string;
+};
+
+// The agent's skill instructions ask for the literal marker "APPROVAL NEEDED:", but the model
+// doesn't always follow that exactly (e.g. markdown-bolded "**APPROVAL NEEDED**" with no colon,
+// seen in practice). Match loosely — optional markdown bold, optional colon, case-insensitive —
+// rather than relying on the model reproducing an exact string every time.
+const APPROVAL_MARKER_PATTERN = /\*{0,2}APPROVAL NEEDED\*{0,2}:?/i;
+
+export function extractApproval(content: string): ApprovalExtraction | null {
+  const match = content.match(APPROVAL_MARKER_PATTERN);
+  if (!match || match.index === undefined) return null;
+
+  const beforeText = content.slice(0, match.index).replace(/-{3,}\s*$/, "").trim();
+  let draftText = content.slice(match.index + match[0].length).trim();
+
+  // Drop a leading "---" divider line, and anything from a trailing "---" divider onward
+  // (models often add follow-up commentary like "Does this work for you?" after one).
+  draftText = draftText.replace(/^-{3,}\s*/, "");
+  const trailingDivider = draftText.search(/\n-{3,}/);
+  if (trailingDivider !== -1) draftText = draftText.slice(0, trailingDivider).trim();
+
+  // Strip a blockquote/quote wrapper if the model presented the draft as a quoted line.
+  draftText = draftText.replace(/^>\s*/gm, "").trim();
+  draftText = draftText.replace(/^"([\s\S]*)"$/, "$1").trim();
+
+  return { beforeText, draftText };
 }
 
 export async function sendChatMessage(messages: ChatMessage[], sessionId: string): Promise<string> {

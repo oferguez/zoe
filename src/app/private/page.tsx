@@ -8,8 +8,7 @@ import {
 } from "@/lib/clientFlow";
 import { readJsonArray, writeJsonArray } from "@/lib/services/browserStorage";
 import {
-  APPROVAL_MARKER,
-  extractApprovalDraft,
+  extractApproval,
   getChatSessionId,
   sendChatMessage,
   type ChatMessage
@@ -108,7 +107,7 @@ export default function PrivateZonePage() {
           ) : null}
 
           {messages.map((message, index) => {
-            const draft = message.role === "assistant" ? extractApprovalDraft(message.content) : null;
+            const approval = message.role === "assistant" ? extractApproval(message.content) : null;
             const isLastMessage = index === messages.length - 1;
 
             return (
@@ -120,14 +119,14 @@ export default function PrivateZonePage() {
                     : "bg-soft-linen text-ink"
                 }`}
               >
-                {draft !== null ? message.content.split(APPROVAL_MARKER)[0] : message.content}
-                {draft !== null && isLastMessage && !resolvedApprovals.has(index) ? (
+                {approval !== null ? approval.beforeText : message.content}
+                {approval !== null && isLastMessage && !resolvedApprovals.has(index) ? (
                   <div className="mt-3">
                     <ApprovalPrompt
-                      draftText={draft}
+                      draftText={approval.draftText}
                       disabled={isSending}
-                      onApprove={() => handleApproval(index, draft, "approve")}
-                      onReject={() => handleApproval(index, draft, "reject")}
+                      onApprove={() => handleApproval(index, approval.draftText, "approve")}
+                      onReject={() => handleApproval(index, approval.draftText, "reject")}
                     />
                   </div>
                 ) : null}
